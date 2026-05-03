@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "recorded": "2026-05-03",
+  "project": {
+    "name": "token-estimator skill",
+    "type": "skill_plugin",
+    "description": "面向vibe coding用户的token消耗与费用预估工具。包含SKILL.md、定价数据、基础token参考、模板文件。",
+    "model": "deepseek-v4-pro",
+    "workflow": "thinking_partner_plus_executor",
+    "workflow_description": "用户先在thinking partner(Claude.ai/ChatGPT网页版)中完成需求设计和规格书，再将完整规格书交给执行端(Claude Code)实现。规格书包含完整的目录结构、字段定义、公式、面板格式等。执行端几乎不需要来回讨论需求。"
+  },
+  "estimate": {
+    "optimistic": 45000,
+    "normal": 144000,
+    "pessimistic": 474000,
+    "methodology": "V1公式: 基础量 × 经验系数 × 上下文膨胀 × 工具辅助 × 历史校准",
+    "breakdown": {
+      "base_tokens": {"optimistic": 40000, "normal": 95000, "pessimistic": 150000},
+      "user_experience_coefficient": 1.0,
+      "context_inflation_coefficient": 1.0,
+      "tool_assistance_coefficient": 0.55,
+      "calibration_coefficient": 1.0
+    },
+    "pessimistic_buffer": 1.3
+  },
+  "actual": {
+    "total_tokens": 43000,
+    "note": "经验估算值，未通过DeepSeek dashboard精确核实（平台不支持API查询用量）。基于会话内容估算：系统上下文约20K(大部分cache hit) + 用户消息约3K + 输出(思考+文件+文本)约20K。",
+    "accuracy_vs_optimistic": 0.96,
+    "accuracy_vs_normal": 0.30,
+    "accuracy_vs_pessimistic": 0.09
+  },
+  "root_cause_analysis": {
+    "finding": "实际消耗仅43K tokens，远低于正常预估144K(30%)，甚至略低于乐观预估45K(96%)。",
+    "primary_cause": "使用了thinking_partner_plus_executor工作流：用户在thinking partner中产出了极其详尽的规格书（含完整目录结构、字段定义、公式、面板格式、数据内容），执行端不需要任何需求澄清环节，直接进入代码实现。",
+    "secondary_causes": [
+      "skill_plugin类型项目本身规模小（仅5个文件，约850行内容）",
+      "模型能力强(deepseek-v4-pro, S级)，一步到位率高",
+      "所有输出均为纯文本文件，无编译/调试/运行循环"
+    ],
+    "key_insight": "提示词完整度是影响token消耗的最被低估的因素。完整规格书可将执行端消耗降至30%以下。需要在V2公式中增加prompt_completeness系数。",
+    "calibration_impact": "V2将增加prompt_completeness和model_intelligence两个系数。按V2公式反推，prompt_completeness应为0.3(完整规格书)，模型智能度为0.80(S级)，重新计算正常预估：95K × 1.0 × 1.0 × 0.55 × 0.80 × 0.30 × 1.0 = 12.5K → 仍偏低，说明base_tokens中的skill_plugin类型可能也需要调整。当前base_tokens保持V1值，等待更多校准数据。"
+  },
+  "lessons_learned": [
+    "完整规格书是降低token消耗的最有效手段（效果远超工具链优化）",
+    "thinking partner + executor工作流应被推荐给所有用户",
+    "skill_plugin类型的基础token量可能被高估，需要更多数据点校准",
+    "deepseek-v4-pro的S级能力在简单项目中优势不明显，但在复杂项目中差距会拉大",
+    "token-estimator自身的预估偏差说明：预估工具也需要被预估"
+  ]
+}

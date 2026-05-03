@@ -1,0 +1,156 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-05-03",
+  "methodology": {
+    "description": "模型智能度系数用于修正不同模型解决同一问题所需token量的差异。模型越强，解决同一问题消耗的token越少（一步到位 vs 反复修改）。系数基于公开benchmark综合评定，每1-2月需更新。",
+    "coefficient_logic": "系数 < 1.0 表示该模型比基准模型（B级）更高效，相同任务消耗更少token。系数 > 1.0 表示该模型需要更多轮次才能完成任务。注意：这是vibe coding实际体验系数，不是纯benchmark分数映射。",
+    "primary_benchmarks": {
+      "swe_bench_verified": {
+        "weight": 0.40,
+        "reason": "SWE-bench Verified 最接近vibe coding场景——给定代码库和issue描述，自动生成patch。衡量模型理解现有代码、定位问题、生成修复的能力。"
+      },
+      "livecode_bench": {
+        "weight": 0.30,
+        "reason": "LiveCodeBench 衡量模型在竞争性编程场景下的一次通过率，反映模型输出代码的准确度和减少返工的能力。"
+      },
+      "terminal_bench": {
+        "weight": 0.30,
+        "reason": "Terminal-Bench 衡量模型在终端环境中自主完成任务的能力，最接近Claude Code/Cursor等执行端的实际使用场景。"
+      }
+    },
+    "reference_sources": [
+      "https://www.swebench.com/ (SWE-bench Verified leaderboard)",
+      "https://livecodebench.github.io/ (LiveCodeBench leaderboard)",
+      "https://terminal-bench.com/ (Terminal-Bench leaderboard)"
+    ],
+    "update_instructions": "每1-2月检查上述排行榜是否有新模型或评分更新。添加新模型到对应tier，更新benchmark_data中的分数。如排行榜结构调整，更新primary_benchmarks的权重分配。"
+  },
+  "tiers": {
+    "S": {
+      "coefficient": 0.80,
+      "description": "顶尖模型。代码理解和生成能力最强，一步到位率高，返工少。vibe coding中通常一次对话就能完成中小型任务。",
+      "characteristics": "SWE-bench > 75, LiveCodeBench > 70, Terminal-Bench > 60。适合复杂架构设计、大型重构、多文件协同修改。",
+      "models": ["claude-opus-4", "claude-opus-4-6", "deepseek-v4-pro", "gpt-5", "gpt-5.4"]
+    },
+    "A": {
+      "coefficient": 0.90,
+      "description": "强模型。能力接近S级，某些子领域可能持平或超越，但综合稳定性略逊。性价比通常最优。",
+      "characteristics": "SWE-bench 65-80, LiveCodeBench 65-75, Terminal-Bench 45-60。适合日常开发、中等复杂度任务。",
+      "models": ["claude-sonnet-4", "claude-sonnet-4-6", "gemini-3.1-pro", "kimi-k2.5", "qwen-3.5"]
+    },
+    "B": {
+      "coefficient": 1.00,
+      "description": "基准模型。能力良好，但复杂任务可能需要更多轮次和返工。本系数体系的参考基准线。",
+      "characteristics": "SWE-bench 50-70, LiveCodeBench 60-75。适合明确需求的常规开发任务。",
+      "models": ["deepseek-v3.2", "deepseek-r1", "minimax-m2.5", "step-3.5-flash"]
+    },
+    "C": {
+      "coefficient": 1.25,
+      "description": "可用模型。简单任务表现尚可，复杂任务需要较多的指导和返工。token消耗明显增加。",
+      "characteristics": "SWE-bench 30-55, LiveCodeBench 40-60。适合小修改、简单脚本、文档生成。",
+      "models": ["deepseek-v3", "glm-5", "grok-3"]
+    },
+    "D": {
+      "coefficient": 1.50,
+      "description": "基础模型。能力有限，复杂编程任务需要大量人工干预和多次返工。不推荐用于中大型项目。",
+      "characteristics": "SWE-bench < 40, LiveCodeBench < 50。仅适合简单辅助、代码补全、学习用途。",
+      "models": ["llama-4-maverick", "gpt-oss", "其他小型/旧模型"]
+    }
+  },
+  "benchmark_data": {
+    "claude-opus-4-6": {
+      "swe_bench_verified": 80.8,
+      "livecode_bench": 76.0,
+      "human_eval": 95.0,
+      "terminal_bench": 65.4,
+      "codeforces_elo": null,
+      "tier": "S",
+      "note": "Anthropic最新旗舰。SWE-bench首破80。综合能力顶尖。"
+    },
+    "claude-sonnet-4-6": {
+      "swe_bench_verified": 79.6,
+      "livecode_bench": 72.4,
+      "human_eval": 92.1,
+      "terminal_bench": 59.1,
+      "codeforces_elo": null,
+      "tier": "A",
+      "note": "性价比最优。接近Opus的SWE能力，价格仅1/5。"
+    },
+    "deepseek-v4-pro": {
+      "swe_bench_verified": 80.6,
+      "livecode_bench": 93.5,
+      "human_eval": null,
+      "terminal_bench": 67.9,
+      "codeforces_elo": 3206,
+      "tier": "S",
+      "note": "LiveCodeBench全球第一(93.5)，SWE-bench并列顶级。Codeforces ELO 3206反映极强的推理和编码能力。"
+    },
+    "deepseek-v3.2": {
+      "swe_bench_verified": 67.8,
+      "livecode_bench": 74.1,
+      "human_eval": null,
+      "terminal_bench": 39.6,
+      "codeforces_elo": null,
+      "tier": "B",
+      "note": "V3升级版，SWE能力显著提升。LiveCodeBench表现接近A级。"
+    },
+    "deepseek-v3": {
+      "swe_bench_verified": 38.8,
+      "livecode_bench": 49.2,
+      "human_eval": null,
+      "terminal_bench": null,
+      "codeforces_elo": null,
+      "tier": "C",
+      "note": "初代V3。SWE能力有限，适合简单任务。"
+    },
+    "deepseek-r1": {
+      "swe_bench_verified": 49.2,
+      "livecode_bench": 65.9,
+      "human_eval": 90.2,
+      "terminal_bench": null,
+      "codeforces_elo": null,
+      "tier": "B",
+      "note": "推理型模型。LiveCodeBench和HumanEval表现不错，但SWE能力中等。额外消耗thinking tokens，实际操作中系数上浮0.15。"
+    },
+    "gemini-3.1-pro": {
+      "swe_bench_verified": 78.0,
+      "livecode_bench": 81.3,
+      "human_eval": 93.0,
+      "terminal_bench": 56.2,
+      "codeforces_elo": null,
+      "tier": "A",
+      "note": "Google旗舰。LiveCodeBench优秀(81.3)，综合能力强。1M context window是独特优势。"
+    },
+    "kimi-k2.5": {
+      "swe_bench_verified": 76.8,
+      "livecode_bench": 85.0,
+      "human_eval": 99.0,
+      "terminal_bench": 50.8,
+      "codeforces_elo": null,
+      "tier": "A",
+      "note": "MoonShot出品。HumanEval接近满分(99.0)，LiveCodeBench优秀(85.0)。"
+    }
+  },
+  "special_considerations": {
+    "thinking_models": {
+      "description": "推理型模型（如DeepSeek R1、OpenAI o-series）在生成代码前会进行内部推理，产生大量不可见的thinking tokens。虽然这些token不计入output费用，但会消耗context window并增加延迟。vibe coding实际体验中，thinking模型的token效率通常低于同级别非thinking模型。",
+      "coefficient_adjustment": "+0.15 (在tier系数基础上叠加)",
+      "affected_models": ["deepseek-r1", "openai-o1", "openai-o3", "openai-o4-mini"]
+    },
+    "context_efficiency": {
+      "description": "大context window模型（如Gemini 1M）在分析大型代码库时优势明显——不需要频繁/compact或分session。但长上下文也可能导致用户不管理上下文，反而增加单次会话的token消耗。",
+      "coefficient_adjustment": "context window > 500K: 系数可额外×0.95（如果用户积极管理上下文）或×1.1（如果用户依赖大窗口不管理）",
+      "affected_models": ["gemini-3.1-pro", "gemini-2.5-pro"]
+    },
+    "vibe_coding_vs_benchmarks": {
+      "description": "Benchmark分数并不能完全反映vibe coding体验。以下维度目前无公开评测数据：多轮对话一致性、对不明确需求的理解能力、代码风格一致性、重构建议质量、错误信息的可理解性。这些维度会影响实际token消耗，但在本系数体系中未被量化。",
+      "unquantified_factors": [
+        "多轮对话中的意图追踪能力",
+        "对模糊/矛盾需求的处理方式",
+        "代码风格和约定的学习速度",
+        "自动识别和修复副作用的能力",
+        "输出中文/混合语言的代码注释质量"
+      ]
+    }
+  }
+}

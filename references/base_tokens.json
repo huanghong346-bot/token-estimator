@@ -1,0 +1,156 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-05-03",
+  "note": "All token values in thousands (K). These are estimated total input+output tokens for vibe coding sessions. Based on empirical data and community reports. Ranges represent optimistic-to-pessimistic spread.",
+  "project_types": {
+    "static_website": {
+      "name": "静态网站 (≤5页)",
+      "range": [50, 100, 150],
+      "examples": "个人主页、Landing page、公司简介站",
+      "assumptions": "无后端逻辑，纯HTML/CSS/JS，不使用框架或使用简单静态生成器"
+    },
+    "blog_content": {
+      "name": "博客/内容站",
+      "range": [80, 140, 200],
+      "examples": "技术博客、Markdown内容站、作品集",
+      "assumptions": "包含MDX/Markdown处理，可能有简单搜索和标签系统"
+    },
+    "web_app_frontend": {
+      "name": "前端Web应用",
+      "range": [100, 200, 300],
+      "examples": "待办事项、仪表盘、社交媒体前端",
+      "assumptions": "使用React/Vue/Next.js，含状态管理、路由、API对接"
+    },
+    "web_app_fullstack": {
+      "name": "带后端的Web应用",
+      "range": [200, 400, 600],
+      "examples": "博客+管理后台、小商城、任务管理系统",
+      "assumptions": "前后端分离或全栈框架，含数据库、认证"
+    },
+    "fullstack_complex": {
+      "name": "全栈+DB+API复杂项目",
+      "range": [500, 1200, 2000],
+      "examples": "SaaS平台、电商系统、社交网络、企业管理系统",
+      "assumptions": "多表数据库、复杂业务逻辑、权限系统、文件处理、第三方集成"
+    },
+    "cli_tool": {
+      "name": "CLI工具",
+      "range": [30, 65, 100],
+      "examples": "代码生成器、自动化脚本工具、开发辅助CLI",
+      "assumptions": "命令行参数解析、文件操作、可能含模板生成"
+    },
+    "api_service": {
+      "name": "API服务",
+      "range": [150, 325, 500],
+      "examples": "RESTful API、GraphQL服务、微服务",
+      "assumptions": "含数据库ORM、认证中间件、输入验证、错误处理"
+    },
+    "mobile_app": {
+      "name": "移动应用",
+      "range": [300, 550, 800],
+      "examples": "React Native/Flutter跨平台应用",
+      "assumptions": "含导航、状态管理、原生功能调用、多屏幕适配"
+    },
+    "chrome_extension": {
+      "name": "浏览器扩展",
+      "range": [60, 130, 200],
+      "examples": "网页增强工具、开发者工具、自动化插件",
+      "assumptions": "Manifest V3、content script、popup UI、storage API"
+    },
+    "skill_plugin": {
+      "name": "AI Skill/Plugin",
+      "range": [40, 95, 150],
+      "examples": "Claude Code Skill、Cursor Plugin、自定义Agent工具",
+      "assumptions": "包含SKILL.md、配置、模板文件，通常几百行内容"
+    }
+  },
+  "feature_addons": {
+    "auth_system": {
+      "name": "认证系统",
+      "range": [50, 100, 150],
+      "complexity_notes": "含注册/登录/密码重置/session管理。OAuth集成会额外增加30-50K"
+    },
+    "payment": {
+      "name": "支付集成",
+      "range": [80, 140, 200],
+      "complexity_notes": "Stripe/支付宝/微信支付。含订单管理、退款逻辑、Webhook处理"
+    },
+    "file_upload": {
+      "name": "文件上传",
+      "range": [40, 80, 120],
+      "complexity_notes": "含拖拽上传、预览、格式校验、进度条。云存储集成额外增加30K"
+    },
+    "search": {
+      "name": "搜索功能",
+      "range": [30, 55, 80],
+      "complexity_notes": "全文搜索、筛选、排序。使用Elasticsearch/Algolia时增幅更大"
+    },
+    "realtime": {
+      "name": "实时功能",
+      "range": [60, 105, 150],
+      "complexity_notes": "WebSocket/SSE、聊天、实时通知、协作编辑"
+    },
+    "data_viz": {
+      "name": "数据可视化",
+      "range": [40, 70, 100],
+      "complexity_notes": "图表、仪表盘、数据报表。使用D3/ECharts等库"
+    },
+    "i18n": {
+      "name": "国际化/多语言",
+      "range": [30, 55, 80],
+      "complexity_notes": "含翻译文件管理、RTL布局、日期/货币格式化"
+    },
+    "third_party_api": {
+      "name": "第三方API集成（每个）",
+      "range": [30, 55, 80],
+      "complexity_notes": "外部API对接、错误处理、重试逻辑、数据转换"
+    },
+    "admin_panel": {
+      "name": "管理后台",
+      "range": [80, 140, 200],
+      "complexity_notes": "CRUD界面、权限管理、数据导出、操作日志"
+    },
+    "email_notification": {
+      "name": "邮件通知",
+      "range": [30, 45, 60],
+      "complexity_notes": "邮件模板、队列发送、退订管理"
+    },
+    "testing": {
+      "name": "测试",
+      "range": [40, 80, 120],
+      "complexity_notes": "单元测试+集成测试+E2E。覆盖率要求越高，token越多"
+    },
+    "deployment_config": {
+      "name": "部署配置",
+      "range": [20, 40, 60],
+      "complexity_notes": "Dockerfile、CI/CD、环境变量、SSL配置"
+    }
+  },
+  "modification_factor": {
+    "from_scratch": {
+      "name": "从零新建",
+      "factor": 1.0,
+      "description": "全新项目，无现有代码基础"
+    },
+    "major_rewrite": {
+      "name": "大规模改造",
+      "factor": 0.7,
+      "description": "保留少量核心逻辑，大部分代码重写"
+    },
+    "moderate_modification": {
+      "name": "中等修改",
+      "factor": 0.5,
+      "description": "添加重要功能或重构部分模块"
+    },
+    "minor_changes": {
+      "name": "小改动",
+      "factor": 0.3,
+      "description": "添加小功能、优化、修复多个bug"
+    },
+    "bug_fixes_only": {
+      "name": "仅修复Bug",
+      "factor": 0.15,
+      "description": "只修bug，不新增功能"
+    }
+  }
+}

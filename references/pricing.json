@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-05-03",
+  "currency_rate": {
+    "usd_to_cny": 7.25
+  },
+  "update_instructions": "To update pricing: edit this file with current pricing from official sources. For new models, add an entry following the existing schema. Set discount_active and discount_expires if the model has a promotional period.",
+  "models": {
+    "claude-opus-4": {
+      "provider": "Anthropic",
+      "input_per_1M": 15.00,
+      "output_per_1M": 75.00,
+      "context_window": 200000,
+      "currency": "USD",
+      "note": "Most capable Anthropic model. Prompt caching reduces input cost by 90%."
+    },
+    "claude-sonnet-4": {
+      "provider": "Anthropic",
+      "input_per_1M": 3.00,
+      "output_per_1M": 15.00,
+      "context_window": 200000,
+      "currency": "USD",
+      "note": "Best balance of capability and cost. Prompt caching reduces input cost by 90%."
+    },
+    "claude-haiku-4": {
+      "provider": "Anthropic",
+      "input_per_1M": 0.80,
+      "output_per_1M": 4.00,
+      "context_window": 200000,
+      "currency": "USD",
+      "note": "Fastest and most cost-effective. Prompt caching reduces input cost by 90%."
+    },
+    "deepseek-v4-pro": {
+      "provider": "DeepSeek",
+      "input_per_1M_cached": 0.025,
+      "input_per_1M": 3.00,
+      "output_per_1M": 6.00,
+      "context_window": 128000,
+      "currency": "CNY",
+      "discount_active": true,
+      "discount_rate": "2.5折 (25% of original)",
+      "discount_expires": "2026-05-31 23:59 北京时间",
+      "full_price_after_discount": {
+        "input_per_1M_cached": 0.10,
+        "input_per_1M": 12.00,
+        "output_per_1M": 24.00
+      },
+      "note": "DeepSeek V4 Pro. 当前2.5折优惠中，5月31日后恢复原价。Cache hit 价格极低。"
+    },
+    "deepseek-v3": {
+      "provider": "DeepSeek",
+      "input_per_1M": 0.27,
+      "output_per_1M": 1.10,
+      "context_window": 128000,
+      "currency": "USD",
+      "note": "Previous generation general-purpose model."
+    },
+    "deepseek-r1": {
+      "provider": "DeepSeek",
+      "input_per_1M": 0.55,
+      "output_per_1M": 2.19,
+      "context_window": 128000,
+      "currency": "USD",
+      "note": "DeepSeek reasoning model. Higher cost due to chain-of-thought tokens."
+    },
+    "gpt-4o": {
+      "provider": "OpenAI",
+      "input_per_1M": 2.50,
+      "output_per_1M": 10.00,
+      "context_window": 128000,
+      "currency": "USD",
+      "note": "OpenAI flagship multimodal model."
+    },
+    "gpt-4o-mini": {
+      "provider": "OpenAI",
+      "input_per_1M": 0.15,
+      "output_per_1M": 0.60,
+      "context_window": 128000,
+      "currency": "USD",
+      "note": "Most cost-effective OpenAI model for simple tasks."
+    },
+    "gemini-2.5-pro": {
+      "provider": "Google",
+      "input_per_1M": 1.25,
+      "output_per_1M": 10.00,
+      "context_window": 1000000,
+      "currency": "USD",
+      "note": "1M context window — largest among all models. Good for large codebase analysis."
+    }
+  }
+}

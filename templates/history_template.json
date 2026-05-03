@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "created": "",
+  "user_profile": {
+    "current_level": "L3",
+    "level_history": [],
+    "total_projects": 0,
+    "total_tokens_used": 0
+  },
+  "calibration": {
+    "user_adjustment": 1.0,
+    "last_calibrated": "",
+    "data_points": []
+  },
+  "projects": []
+}
