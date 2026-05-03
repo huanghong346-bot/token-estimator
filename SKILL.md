@@ -1,5 +1,5 @@
 ---
-name: token-estimator
+name: estimate
 description: >-
   Project token consumption & cost estimator for vibe coding.
   Trigger proactively when user mentions: token, tokens, 费用, 成本, 预算,
@@ -506,16 +506,19 @@ description: >-
 
 ## 9. 数据管理命令
 
-响应用户的以下快捷命令：
+响应用户的以下对话命令（这些是 conversation triggers，不是 Claude Code 的 slash commands）：
 
-| 命令 | 功能 |
-|------|------|
-| `/estimate` | 触发新预估或更新当前预估 |
-| `/estimate-reset` | 清除当前 active project，开始新预估 |
-| `/estimate-history` | 显示历史项目列表和统计摘要 |
-| `/estimate-compare [模型名]` | 对比切换模型后的费用差异 |
-| `/estimate-level` | 显示/手动设置用户等级 |
-| `/estimate-config` | 显示当前配置（模型、定价、检测到的工具） |
+| 用户输入 | 功能 |
+|---------|------|
+| `/estimate` 或 "预估一下" | 触发新预估或更新当前预估 |
+| "重新预估" 或 "重置预估" | 清除当前 active project，开始新预估 |
+| "预估历史" | 显示历史项目列表和统计摘要 |
+| "对比模型 [模型名]" | 对比切换模型后的费用差异 |
+| "我的等级" | 显示/手动设置用户等级 |
+| "当前配置" | 显示当前配置（模型、定价、检测到的工具） |
+
+注意：安装时目录名必须为 `estimate`，Claude Code 的调用方式为 `/estimate`。
+以上命令是 skill 激活后在对话中使用的自然语言触发词。
 
 ---
 

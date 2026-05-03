@@ -8,19 +8,19 @@
 ### Claude Code
 
 ```bash
-# 复制到 Claude Code skills 目录
-cp -r token-estimator ~/.claude/skills/token-estimator
+# 从 GitHub 克隆（推荐）
+git clone https://github.com/huanghong346-bot/token-estimator.git ~/.claude/skills/estimate
 ```
 
 ### Cursor
 
 ```bash
-cp -r token-estimator ~/.cursor/skills/token-estimator
+git clone https://github.com/huanghong346-bot/token-estimator.git ~/.cursor/skills/estimate
 ```
 
 ### 其他支持 SKILL.md 的工具
 
-将 `token-estimator/` 目录复制到对应工具的 skills 目录即可。
+将仓库克隆到对应工具的 skills 目录，目录名必须为 `estimate`。
 
 ## 使用方式
 
@@ -41,16 +41,18 @@ cp -r token-estimator ~/.cursor/skills/token-estimator
 /estimate
 ```
 
-### 快捷命令
+或者直接说出包含触发关键词的语句。
+
+### 对话命令（在 skill 激活后使用）
 
 | 命令 | 功能 |
 |------|------|
-| `/estimate` | 触发新预估或更新当前预估 |
-| `/estimate-reset` | 清除当前项目，开始新预估 |
-| `/estimate-history` | 显示历史项目列表和统计 |
-| `/estimate-compare claude-sonnet-4` | 对比切换模型后的费用差异 |
-| `/estimate-level` | 显示或手动设置用户等级 |
-| `/estimate-config` | 显示当前配置 |
+| `/estimate` 或 "预估一下" | 触发新预估或更新当前预估 |
+| "重新预估" 或 "重置预估" | 清除当前项目，开始新预估 |
+| "预估历史" | 显示历史项目列表和统计 |
+| "对比模型 claude-sonnet-4" | 对比切换模型后的费用差异 |
+| "我的等级" | 显示或手动设置用户等级 |
+| "当前配置" | 显示当前配置（模型、定价、检测到的工具） |
 
 ### 项目进行中的更新
 
@@ -61,7 +63,7 @@ cp -r token-estimator ~/.cursor/skills/token-estimator
 
 ### 项目结束
 
-当项目完成时，说"项目完成"或"/estimate"，工具会引导你收集实际消耗数据，
+当项目完成时，说"项目完成"或运行 `/estimate`，工具会引导你收集实际消耗数据，
 并自动更新校准系数，让下次预估更准确。
 
 ## 数据存储
