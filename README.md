@@ -18,7 +18,7 @@ Built for vibe coding users who want to know: *"How much will this actually cost
 
 ## How it works
 
-Token Estimator combines 5 coefficients (soon to be 7) into a single projection:
+Token Estimator combines 7 coefficients into a single projection:
 
 ### User experience coefficient (L1–L4, auto-inferred)
 
@@ -73,6 +73,21 @@ This is the single biggest lever. A complete spec from a thinking partner (Claud
 | Feature list | 0.7x | "Blog with login, CRUD, tags" |
 | Structured doc | 0.5x | Has data models, API design, page structure |
 | Complete spec | 0.3x | Thinking partner output — ready to implement |
+
+### Agent mode multiplier
+
+The work environment directly affects how many API calls each user message generates. The skill auto-detects your mode and applies the appropriate multiplier to estimated call count:
+
+| Mode | Coefficient | Description |
+|------|-------------|-------------|
+| Dialogue (ChatGPT web, etc.) | 1.0x | One user message → one model response |
+| Semi-auto (Cursor) | 2.0x | Partial tool-use automation |
+| Agent (Claude Code) | 3.5x | One instruction triggers multiple read/write/run/check calls |
+| Agent + Harness | 4.5x | Orchestration tools (Hermes, ECC) add scheduling overhead |
+
+### Historical calibration coefficient
+
+Every completed and logged project improves future estimates. After 3 or more logged projects, the skill computes a weighted calibration factor from your last 5 projects (newer projects weighted more heavily). The coefficient is clamped to [0.5x, 2.0x] and held at 1.0x until the third project is logged.
 
 ---
 
