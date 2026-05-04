@@ -1,7 +1,53 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2026-05-03",
-  "note": "All token values in thousands (K). These are estimated total input+output tokens for vibe coding sessions. Based on empirical data and community reports. Ranges represent optimistic-to-pessimistic spread.",
+  "version": "1.2.0",
+  "last_updated": "2026-05-04",
+  "note": "V5 update: renamed api_call_estimates to api_call_base_estimates. These base values assume 'conversation mode' (1 user message = 1 API call). Actual call count is adjusted by user_level, prompt_completeness, model_intelligence, and agent_mode coefficients.",
+  "api_call_base_estimates": {
+    "description": "基础API调用次数范围 [min, max]，基于【对话模式】(用户发一条/模型回一条)。实际调用次数 = 基础值 × 用户经验系数 × 提示词完整度调用系数 × 模型智能度调用系数 × agent模式系数。min对应乐观档位，max对应悲观档位。",
+    "by_project_type": {
+      "static_website": [5, 20],
+      "blog_content": [10, 30],
+      "web_app_frontend": [20, 60],
+      "web_app_fullstack": [40, 120],
+      "fullstack_complex": [80, 250],
+      "cli_tool": [5, 25],
+      "api_service": [20, 80],
+      "mobile_app": [40, 150],
+      "chrome_extension": [10, 40],
+      "skill_plugin": [5, 20]
+    },
+    "user_level_multiplier": {
+      "L1": 2.0,
+      "L2": 1.5,
+      "L3": 1.0,
+      "L4": 0.8
+    },
+    "prompt_completeness_call_multiplier": {
+      "vague": 1.0,
+      "feature_list": 0.75,
+      "structured_doc": 0.5,
+      "complete_spec": 0.3
+    },
+    "model_intelligence_call_multiplier": {
+      "S": 0.85,
+      "A": 0.90,
+      "B": 1.00,
+      "C": 1.15,
+      "D": 1.30
+    },
+    "agent_mode_multiplier": {
+      "conversation": 1.0,
+      "semi_auto": 2.0,
+      "agent": 3.5,
+      "agent_harness": 4.5
+    },
+    "per_call_context_defaults": {
+      "base_system_prompt": [4, 8],
+      "tool_definitions": [2, 5],
+      "conversation_history_avg": [10, 30],
+      "total_default_k": 40
+    }
+  },
   "project_types": {
     "static_website": {
       "name": "静态网站 (≤5页)",
@@ -151,6 +197,65 @@
       "name": "仅修复Bug",
       "factor": 0.15,
       "description": "只修bug，不新增功能"
+    }
+  },
+  "work_types": {
+    "description": "项目在估算前需要先识别工作类型，不同类型的 modification_factor 适用性不同",
+    "types": {
+      "standard_feature_dev": {
+        "name": "Standard feature development",
+        "description": "CRUD, UI components, APIs, auth, integrations with clear specs",
+        "modification_factor_applies": true,
+        "estimate_reliability": "high",
+        "examples": ["login system", "dashboard page", "REST API endpoint", "payment integration"]
+      },
+      "code_modification": {
+        "name": "Code modification / refactoring",
+        "description": "Changing existing code structure, logic, or interfaces",
+        "modification_factor_applies": true,
+        "estimate_reliability": "high"
+      },
+      "skill_plugin_dev": {
+        "name": "Skill / Plugin development",
+        "description": "SKILL.md, MCP servers, AI tool plugins",
+        "modification_factor_applies": true,
+        "estimate_reliability": "high"
+      },
+      "research_content": {
+        "name": "Research-based content creation",
+        "description": "Collecting benchmark data, writing documentation, analysis files. modification_factor does NOT apply — this type is always close to full creation cost regardless of whether the project is new or existing.",
+        "modification_factor_applies": false,
+        "estimate_reliability": "medium",
+        "note": "Always estimate this portion as if from scratch, then add to the rest"
+      },
+      "mixed": {
+        "name": "Mixed project",
+        "description": "Contains both standard development and research/content work",
+        "modification_factor_applies": "partial",
+        "estimate_reliability": "medium",
+        "note": "Split into sub-tasks by type, estimate each separately, then sum. Do not apply a single modification_factor to the whole project."
+      },
+      "complex_system": {
+        "name": "Complex system architecture",
+        "description": "Microservices, distributed systems, custom infrastructure, multi-service backends",
+        "modification_factor_applies": true,
+        "estimate_reliability": "low",
+        "warning": "Unknowns compound quickly. Estimates may be off by 3x or more."
+      },
+      "debug_heavy": {
+        "name": "Debugging-heavy project",
+        "description": "Unknown bugs, dependency conflicts, environment issues dominate the work",
+        "modification_factor_applies": false,
+        "estimate_reliability": "very_low",
+        "warning": "Each debug loop is unpredictable. Token consumption can spike without warning."
+      },
+      "vague_shifting": {
+        "name": "Vague requirements / shifting direction",
+        "description": "Goal keeps changing, requirements not defined upfront",
+        "modification_factor_applies": false,
+        "estimate_reliability": "very_low",
+        "warning": "Estimate resets each time the direction changes."
+      }
     }
   }
 }

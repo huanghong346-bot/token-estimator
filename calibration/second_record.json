@@ -1,0 +1,44 @@
+{
+  "project_name": "token-estimator skill V2",
+  "start_date": "2026-05-03",
+  "end_date": "2026-05-03",
+  "project_type": "mixed",
+  "work_type_breakdown": {
+    "code_modification": {
+      "files": ["SKILL.md", "README.md"],
+      "estimated_share": "~30%"
+    },
+    "research_content": {
+      "files": ["references/model_intelligence.json", "calibration/first_record.json"],
+      "estimated_share": "~70%",
+      "note": "Benchmark data collection and calibration analysis dominated the work"
+    }
+  },
+  "model": "deepseek-v4-pro",
+  "tools": ["claude-code"],
+  "workflow": "thinking_partner_plus_executor",
+  "prompt_completeness": "complete_spec",
+  "user_level_start": "L2",
+  "user_level_end": "L2",
+  "estimate": {
+    "optimistic": 14000,
+    "normal": 45000,
+    "pessimistic": 148000
+  },
+  "actual_tokens": {
+    "input_cached": 22000,
+    "input_miss": 5000,
+    "output": 15000,
+    "total": 42000,
+    "data_source": "claude_code_self_estimate",
+    "verified_via_dashboard": false
+  },
+  "actual_cost_cny": 0.13,
+  "accuracy": {
+    "ratio_vs_optimistic": 3.0,
+    "ratio_vs_normal": 0.93,
+    "ratio_vs_pessimistic": 0.28,
+    "assessment": "Landed near normal estimate. Optimistic was off because research_content portion was underestimated — modification_factor does not apply to this work type.",
+    "key_insight": "Mixed projects must be split by work type before estimating. Applying modification_factor to the whole project caused optimistic estimate to be 3x too low."
+  }
+}

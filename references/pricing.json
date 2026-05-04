@@ -9,25 +9,34 @@
     "claude-opus-4": {
       "provider": "Anthropic",
       "input_per_1M": 15.00,
+      "input_per_1M_cached": 1.50,
       "output_per_1M": 75.00,
       "context_window": 200000,
       "currency": "USD",
+      "cache_strategy": "prompt_caching",
+      "cache_discount": "90% off regular input price",
       "note": "Most capable Anthropic model. Prompt caching reduces input cost by 90%."
     },
     "claude-sonnet-4": {
       "provider": "Anthropic",
       "input_per_1M": 3.00,
+      "input_per_1M_cached": 0.30,
       "output_per_1M": 15.00,
       "context_window": 200000,
       "currency": "USD",
+      "cache_strategy": "prompt_caching",
+      "cache_discount": "90% off regular input price",
       "note": "Best balance of capability and cost. Prompt caching reduces input cost by 90%."
     },
     "claude-haiku-4": {
       "provider": "Anthropic",
       "input_per_1M": 0.80,
+      "input_per_1M_cached": 0.08,
       "output_per_1M": 4.00,
       "context_window": 200000,
       "currency": "USD",
+      "cache_strategy": "prompt_caching",
+      "cache_discount": "90% off regular input price",
       "note": "Fastest and most cost-effective. Prompt caching reduces input cost by 90%."
     },
     "deepseek-v4-pro": {
@@ -50,42 +59,57 @@
     "deepseek-v3": {
       "provider": "DeepSeek",
       "input_per_1M": 0.27,
+      "input_per_1M_cached": 0.025,
       "output_per_1M": 1.10,
       "context_window": 128000,
       "currency": "USD",
-      "note": "Previous generation general-purpose model."
+      "cache_strategy": "automatic_cache",
+      "cache_discount": "~90% off input price (automatic, cannot manually control)",
+      "note": "Previous generation general-purpose model. Cache hit is automatic."
     },
     "deepseek-r1": {
       "provider": "DeepSeek",
       "input_per_1M": 0.55,
+      "input_per_1M_cached": 0.025,
       "output_per_1M": 2.19,
       "context_window": 128000,
       "currency": "USD",
-      "note": "DeepSeek reasoning model. Higher cost due to chain-of-thought tokens."
+      "cache_strategy": "automatic_cache",
+      "cache_discount": "~95% off input price (automatic, cannot manually control)",
+      "note": "DeepSeek reasoning model. Higher output cost due to chain-of-thought tokens."
     },
     "gpt-4o": {
       "provider": "OpenAI",
       "input_per_1M": 2.50,
+      "input_per_1M_cached": 1.25,
       "output_per_1M": 10.00,
       "context_window": 128000,
       "currency": "USD",
+      "cache_strategy": "prompt_caching",
+      "cache_discount": "50% off regular input price",
       "note": "OpenAI flagship multimodal model."
     },
     "gpt-4o-mini": {
       "provider": "OpenAI",
       "input_per_1M": 0.15,
+      "input_per_1M_cached": 0.075,
       "output_per_1M": 0.60,
       "context_window": 128000,
       "currency": "USD",
+      "cache_strategy": "prompt_caching",
+      "cache_discount": "50% off regular input price",
       "note": "Most cost-effective OpenAI model for simple tasks."
     },
     "gemini-2.5-pro": {
       "provider": "Google",
       "input_per_1M": 1.25,
+      "input_per_1M_cached": 1.25,
       "output_per_1M": 10.00,
       "context_window": 1000000,
       "currency": "USD",
-      "note": "1M context window — largest among all models. Good for large codebase analysis."
+      "cache_strategy": "context_caching",
+      "cache_discount": "No cache hit price reduction. Context cache charges by storage time + read tokens at full input price.",
+      "note": "1M context window. Gemini context caching stores context on GCP and charges by storage duration + read volume. No per-token discount like Anthropic/DeepSeek."
     }
   }
 }

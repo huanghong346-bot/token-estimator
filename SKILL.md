@@ -18,10 +18,12 @@ description: >-
 
 数据文件路径（所有引用均为相对于本 SKILL.md 所在目录）：
 - `references/pricing.json` — 模型定价
-- `references/base_tokens.json` — 基础 token 量参考
+- `references/base_tokens.json` — 基础 token 量参考 + API调用次数估算
 - `references/model_intelligence.json` — 模型智能度评测数据
 - `templates/history_template.json` — 历史数据模板
-- `calibration/first_record.json` — 第一组校准数据
+- `calibration/first_record.json` — V1 校准数据
+- `calibration/second_record.json` — V2 校准数据
+- `calibration/third_record.json` — V4 校准数据（三层模型验证）
 
 ---
 
@@ -39,8 +41,9 @@ description: >-
 这是你第一次使用本工具，有几件事需要说明：
 
 📌 预估范围：
-  本工具只预估【执行端】的 token 消耗。执行端包括：
-  - Claude Code、Cursor、GitHub Copilot、Cline 等 AI 编码工具
+  本工具预估【API 调用的完整 token 消耗】，包括：
+  - 执行层（cache miss + output）：模型真正读新内容和生成内容
+  - 上下文重传层（cache hit）：每次调用重传的系统提示词、CLAUDE.md、工具定义、对话历史
   - 不包括 Claude.ai、ChatGPT 网页版等"thinking partner"对话
     （这些通常是订阅制按月付费，不在统计范围）
 
@@ -120,6 +123,42 @@ description: >-
 
 未检测到任何工具时，系数为 **1.0x**。
 
+### 2.5 CLAUDE.md 上下文大小测量
+
+CLAUDE.md 越大，每次 API 调用的上下文重传开销越高。检测项目根目录和 `~/.claude/CLAUDE.md`：
+
+1. 读取 CLAUDE.md 文件内容
+2. 统计行数
+3. 估算 token 数：`token_estimate = 行数 × 20`（平均每行约 20 tokens）
+4. 记录到 `active_project.json` 的 `claude_md_tokens` 字段
+
+CLAUDE.md 大小参考：
+| 规模 | 行数 | 估算 tokens |
+|------|------|-------------|
+| 小型（基础指令） | <50行 | <1K |
+| 中型（项目规范） | 50-200行 | 1K-4K |
+| 大型（详细架构） | 200-500行 | 4K-10K |
+| 超大（多文件复合） | 500+行 | 10K+ |
+
+### 2.6 Agent 模式检测
+
+判断当前运行环境的工作模式（影响 Layer 2 的 API 调用次数乘数）：
+
+1. 检查当前会话的工具调用模式：是否每个用户消息触发多次工具调用（读/写/运行）
+2. 检查环境信息：
+   - 运行在 Claude Code 中 → **Agent 模式 (3.5x)**
+   - 运行在 Cursor 中 → **半自动模式 (2.0x)**
+   - 检测方式：查看环境变量、当前平台（platform: win32 等）、会话中的 tool calls 频率
+3. 检查是否有 Harness 配置：
+   - 如果 `~/.claude/settings.json` 中有 hooks 或 agents 配置 → 额外 +1.0x（Agent + Harness: 4.5x）
+   - 如果检测到 Hermes Agent 或 ECC → Agent + Harness: 4.5x
+
+**默认**：Claude Code 环境默认为 Agent 模式 (3.5x)。如不确定，询问用户：
+```
+⚙️ 检测到当前为 Claude Code 环境，默认使用 Agent 模式系数 3.5x。
+   如果是简单的对话式项目（不涉及大量工具调用），可以说"对话模式"切换到 1.0x。
+```
+
 ---
 
 ## 3. 用户经验等级推断
@@ -176,7 +215,72 @@ description: >-
 
 如果信息不足，**简洁地**问用户（一次最多3个关键问题，不要问无关细节）。
 
-### 4.2 模型智能度系数
+### 4.2 工作类型识别
+
+读取 `references/base_tokens.json` 中的 `work_types` 字段，
+判断当前项目属于哪种工作类型。
+
+识别方式：从用户的项目描述中提取关键信息进行匹配。
+
+| 工作类型 | modification_factor 适用 | 预估可靠性 |
+|---------|-------------------------|-----------|
+| Standard feature development | 适用 | high |
+| Code modification / refactoring | 适用 | high |
+| Skill / Plugin development | 适用 | high |
+| Research-based content creation | **不适用** (始终按新建估算) | medium |
+| Mixed project | 部分适用 (需拆分) | medium |
+| Complex system architecture | 适用 | low |
+| Debugging-heavy project | 不适用 | very_low |
+| Vague requirements / shifting direction | 不适用 | very_low |
+
+识别完成后：
+- 告知用户识别结果
+- 说明该类型的 estimate_reliability（high/medium/low/very_low）
+- 如果是 mixed 类型，提示用户将项目拆分描述，分别估算
+- 如果 modification_factor 不适用，告知用户并说明原因
+
+**黑洞预警触发条件**
+
+如果同时满足以下所有条件，不输出预估数字，改为输出黑洞警告：
+
+1. 用户等级 L1
+2. 项目类型为 complex_system 或包含大量 debug_heavy / vague_shifting 特征
+3. 提示词完整度系数 ≥ 0.7（即描述模糊）
+4. 未检测到任何辅助工具（无 CLAUDE.md、无 harness）
+5. 用户未提及任何分阶段或拆分计划
+
+触发时输出：
+
+```
+╔══════════════════════════════════════════════════════╗
+║  ⚠️  Token Black Hole Warning                         ║
+╠══════════════════════════════════════════════════════╣
+║  This project cannot be meaningfully estimated.       ║
+║                                                       ║
+║  More importantly: based on current conditions,       ║
+║  this project may not be completable with vibe        ║
+║  coding — regardless of token budget.                 ║
+╠══════════════════════════════════════════════════════╣
+║  Issues detected:                                     ║
+║  • [列出触发的具体条件]                                ║
+╠══════════════════════════════════════════════════════╣
+║  Recommended actions before starting:                 ║
+║  1. Use a thinking partner to break the project       ║
+║     into phases (Claude.ai, ChatGPT, etc.)            ║
+║  2. Create a CLAUDE.md with project rules             ║
+║  3. Start with a smaller scoped practice project      ║
+║  4. Re-run /estimate after completing the above       ║
+╚══════════════════════════════════════════════════════╝
+```
+
+黑洞预警输出后，询问用户：
+```
+⚠️ 是否仍要继续估算？（输入"继续估算"）
+```
+
+如果用户确认继续，才输出正常预估面板，并在面板顶部标注 `⚠️ HIGH RISK — 预估可靠性: very_low`。
+
+### 4.3 模型智能度系数
 
 不同模型解决同一问题的效率和 token 消耗不同。模型越强，一步到位率越高，
 返工越少，总 token 消耗越低。
@@ -203,7 +307,7 @@ description: >-
    依据: SWE-bench 80.6, LiveCodeBench 93.5 (全球第一), Terminal-Bench 67.9
 ```
 
-### 4.3 提示词完整度系数
+### 4.4 提示词完整度系数
 
 **核心发现**（来自 token-estimator V1 校准数据）：使用"thinking partner + executor"工作流，
 完整规格书可将执行端 token 消耗降至正常预估的 **30%**。
@@ -232,7 +336,7 @@ description: >-
          执行端可直接按规格书实现，无需需求讨论。
 ```
 
-### 4.4 上下文管理策略评估
+### 4.5 上下文管理策略评估
 
 评估用户的上下文管理习惯，给出上下文膨胀系数：
 
@@ -253,7 +357,11 @@ description: >-
 
 ## 5. 计算预估
 
-### 5.1 基础 token 量
+三层估算模型：执行层 + 上下文重传层 → 完整费用。
+
+### 5.1 Layer 1: 执行层 token（cache miss + output）
+
+这部分估算的是模型真正"读新内容"和"生成内容"的量。
 
 ```
 基础量 = project_type_range × modification_factor + Σ(feature_addons_range)
@@ -264,11 +372,9 @@ description: >-
 - 开始改造（non-from-scratch）时，feature addons 按比例缩减
 - 累加得到三个基础值：`base_optimistic`, `base_normal`, `base_pessimistic`
 
-### 5.2 总 token 预估公式
-
 ```
-总token(档位) = base(档位) × 用户经验系数 × 上下文膨胀系数 × 工具辅助系数
-              × 模型智能度系数 × 提示词完整度系数 × 历史校准系数
+执行层token(档位) = base(档位) × 用户经验系数 × 上下文膨胀系数 × 工具辅助系数
+                   × 模型智能度系数 × 提示词完整度系数 × 历史校准系数
 ```
 
 三档：
@@ -276,18 +382,98 @@ description: >-
 - **正常**：使用中位基础量和正常系数
 - **悲观**：使用悲观基础量并在最后乘以 1.3 的缓冲区
 
-### 5.3 费用计算
+**执行层 input/output 拆分**（从固定 70:30 改为按模型类型）：
+
+| 模型类型 | input 比例 | output 比例 | 说明 |
+|---------|-----------|------------|------|
+| 标准模型 | 60% | 40% | 通用对话模型 |
+| 推理模型（R1等） | 40% | 60% | thinking tokens 大量占用 output |
 
 ```
-输入 token = 总token × 0.7
-输出 token = 总token × 0.3
+执行层 input = 执行层token × input比例
+执行层 output = 执行层token × output比例
+```
 
-费用 = (输入token × input_price_per_1M + 输出token × output_price_per_1M) / 1,000,000
+### 5.2 Layer 2: 上下文重传层 token（cache hit）
+
+每次 API 调用都会重传：系统提示词 + CLAUDE.md + 工具定义 + 对话历史。
+这些是缓存命中（单价很低），但累积量巨大，必须纳入估算。
+
+```
+预估API调用次数 = 基础调用次数 × 用户经验调用系数 × 提示词完整度调用系数
+                × 模型智能度调用系数 × agent模式系数
+
+上下文重传token = 每次调用的固定上下文大小 × 预估API调用次数
+```
+
+**每次调用的固定上下文大小估算**：
+
+| 组成部分 | 估算值 | 说明 |
+|---------|--------|------|
+| 基础系统提示词 | 4K-8K | 取决于工具/平台 |
+| CLAUDE.md 内容 | [从步骤2.5实测] | 默认 2K |
+| 工具定义 | 2K-5K | 取决于工具数量 |
+| 对话历史滚动窗口 | 10K-30K | 随轮次增长，取均值 |
+| **合计（默认）** | **约 40K** | 无实测数据时使用此默认值 |
+
+如果有 CLAUDE.md 实测数据，替换上表中的 CLAUDE.md 行，重新计算合计。
+
+**基础调用次数**：从 `references/base_tokens.json` 的 `api_call_base_estimates` 读取。
+取项目类型的 `[min, max]` 范围：
+- optimistic 使用 min 值，normal 使用中间值，pessimistic 使用 max 值
+- 这些基础值基于"对话模式"（用户发一条，模型回一条），agent 模式下会通过 agent_mode 系数上调
+
+**用户经验对调用次数的影响**：
+
+| 等级 | Layer 1 系数 | Layer 2 调用次数系数 | 说明 |
+|------|-------------|---------------------|------|
+| L1 | 3.0-4.0x | 2.0x | 大量来回澄清 |
+| L2 | 2.0-2.8x | 1.5x | 需要较多指导 |
+| L3 | 1.2-1.8x | 1.0x | 标准效率 |
+| L4 | 0.8-1.2x | 0.8x | 高效沟通 |
+
+**提示词完整度对调用次数的影响**（与 Layer 1 系数不同）：
+
+| 提示词质量 | Layer 1 系数 | Layer 2 调用次数系数 | 说明 |
+|-----------|-------------|---------------------|------|
+| 模糊口头描述 | 1.0x | 1.0x | 大量来回讨论需求，调用次数多 |
+| 有功能列表但不详细 | 0.7x | 0.75x | 仍需较多澄清 |
+| 结构化需求文档 | 0.5x | 0.5x | 需求较清晰，减少返工 |
+| 完整规格书 | 0.3x | 0.3x | 执行端无需讨论需求，直接实现 |
+
+**模型智能度对调用次数的影响**（与 Layer 1 系数不同）：
+
+| 等级 | Layer 1 系数 | Layer 2 调用次数系数 | 说明 |
+|------|-------------|---------------------|------|
+| S 级 | 0.80x | 0.85x | 一步做对概率高，减少调试轮次 |
+| A 级 | 0.90x | 0.90x | 能力强，偶尔需要调整 |
+| B 级 | 1.00x | 1.00x | 基准线 |
+| C 级 | 1.25x | 1.15x | 需较多指导和返工 |
+| D 级 | 1.50x | 1.30x | 频繁出错，大量调试 |
+
+**Agent 模式系数**（在环境侦测步骤中检测）：
+
+| 工作模式 | 系数 | 说明 |
+|---------|------|------|
+| 对话模式（ChatGPT网页等） | 1.0x | 用户发一条，模型回一条 |
+| 半自动（Cursor等） | 2.0x | 部分自动操作 |
+| Agent 模式（Claude Code） | 3.5x | 一个指令触发多次连续调用（读文件/写文件/运行命令/检查结果） |
+| Agent + Harness | 4.5x | 编排工具（Hermes/ECC）增加额外的调度调用 |
+
+### 5.3 Layer 3: 费用计算
+
+```
+缓存命中费用 = Layer 2 token 量 × cached_input_price_per_1M / 1,000,000
+缓存未命中费用 = 执行层 input × input_price_per_1M / 1,000,000
+输出费用 = 执行层 output × output_price_per_1M / 1,000,000
+
+总费用 = 缓存命中费用 + 缓存未命中费用 + 输出费用
+总token = 执行层token + 上下文重传token
 ```
 
 - 同时显示人民币和美元（汇率 7.25）
 - 如果当前模型有优惠折扣，同时显示优惠价和原价
-- 对于 deepseek-v4-pro，额外考虑 cache hit 的影响（cache hit 的 input 价格极低）
+- 如果模型没有单独的 cached input 价格（pricing.json 中无 `input_per_1M_cached` 字段），使用正常 input 价格的 10%（Anthropic/OpenAI 典型缓存折扣）
 
 ---
 
@@ -312,23 +498,39 @@ description: >-
 ║  🧠 模型智能度: [Tier] · [描述]         系数: [x]x               ║
 ║  📝 提示词完整度: [等级]                  系数: [x]x               ║
 ║  📐 历史校准: [x个数据点]             系数: [x]x               ║
+║  📏 CLAUDE.md: [x行, ~xK tokens]                             ║
+║  📡 工作模式: [Agent/半自动/对话]            系数: [x]x       ║
+║  📞 预估API调用: [乐观]次   [正常]次   [悲观]次                ║
+║      (每次上下文: ~[值]K tokens)                              ║
 ╠══════════════════════════════════════════════════════════════╣
+║                   🟢乐观         🟡正常         🔴悲观        ║
 ║                                                              ║
-║  ┌──────────┬────────────┬────────────┬────────────┐         ║
-║  │   档位   │  Token 量   │  费用(¥)   │  费用($)   │         ║
-║  ├──────────┼────────────┼────────────┼────────────┤         ║
-║  │ 🟢 乐观  │   xxx K    │   ¥x.xx    │   $x.xx    │         ║
-║  │ 🟡 正常  │   xxx K    │   ¥x.xx    │   $x.xx    │         ║
-║  │ 🔴 悲观  │   xxx K    │   ¥x.xx    │   $x.xx    │         ║
-║  └──────────┴────────────┴────────────┴────────────┘         ║
+║  执行层 (cache miss + output):                                ║
+║   Cache miss:   [值]K          [值]K          [值]K          ║
+║   Output:       [值]K          [值]K          [值]K          ║
+║                                                              ║
+║  上下文重传层 (cache hit):                                     ║
+║   每次调用:     [值]K          [值]K          [值]K          ║
+║   × 调用次数:   [值]次         [值]次         [值]次         ║
+║   Cache hit:    [值]M          [值]M          [值]M          ║
+║                                                              ║
+║  总token:       [值]M          [值]M          [值]M          ║
+║                                                              ║
+║  费用明细:                                                    ║
+║   Cache hit:    ¥[值]          ¥[值]          ¥[值]          ║
+║   Cache miss:   ¥[值]          ¥[值]          ¥[值]          ║
+║   Output:       ¥[值]          ¥[值]          ¥[值]          ║
+║   总费用(¥):    ¥[值]          ¥[值]          ¥[值]          ║
+║   总费用($):    $[值]          $[值]          $[值]          ║
 ║                                                              ║
 ║  以上为 [当前模型名] 预估，费用基于 [价格描述]                   ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  📈 进度追踪                                                 ║
-║  已用 Token: [xxxK] / 占正常预估的 [xx]%                      ║
-║  [进度条]                                                     ║
-║  预计剩余: [xxxK] tokens                                      ║
+║  已用 cache miss: [xxxK] / 占正常预估的 [xx]%                  ║
+║  已用 cache hit:  [xxxM] / 占正常预估的 [xx]%                  ║
+║  已用 output:     [xxxK] / 占正常预估的 [xx]%                  ║
+║  预计剩余: [xxxM] tokens                                      ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  ⚠️  风险因子                                                 ║
 ║  · L1 用户，建议先做小练手项目熟悉工具                          ║
@@ -337,6 +539,7 @@ description: >-
 ╠══════════════════════════════════════════════════════════════╣
 ║  💡 优化建议                                                 ║
 ║  · 建议拆分为 [n] 个阶段，每阶段结束后检查进度                   ║
+║  · CLAUDE.md 偏大([x]K tokens)，精简可显著降低 cache hit 开销  ║
 ║  · [其他建议...]                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  📝 建议的拆分阶段（正常档位）                                  ║
@@ -348,11 +551,12 @@ description: >-
 
 ### 面板输出规则
 
-1. **进度追踪区域**：仅当能获取到实际 token 用量时显示
+1. **进度追踪区域**：仅当能获取到实际 token 用量时显示，按 cache miss / cache hit / output 分三行
 2. **风险因子**：至少列出1条，最多4条。优先列出影响最大的因子
 3. **L1用户特别提示**：如果用户是L1，必须在风险因子中加入"建议先做小练手项目"
 4. **折扣提示**：如果模型有活跃折扣，在费用行后面注明"(优惠价)/¥x.xx(原价)"
-5. **建议拆分阶段**：正常档位预估 > 200K tokens 时，必须建议拆分阶段
+5. **建议拆分阶段**：正常档位预估 > 500K tokens 时，必须建议拆分阶段
+6. **CLAUDE.md 优化提示**：如果 CLAUDE.md 估算 > 5K tokens，在优化建议中加入精简建议
 
 ### 面板输出后
 
@@ -443,15 +647,18 @@ description: >-
   "estimated": {
     "optimistic": 0,
     "normal": 0,
-    "pessimistic": 0
+    "pessimistic": 0,
+    "layer1_execution": { "cache_miss": 0, "output": 0 },
+    "layer2_context": { "per_call_tokens": 0, "call_count": 0, "cache_hit": 0 }
   },
   "actual": {
     "input_tokens": 0,
+    "input_cached": 0,
     "output_tokens": 0,
-    "cached_tokens": 0,
     "total": 0
   },
   "accuracy_ratio": 0,
+  "accuracy_layer1_only": 0,
   "model": "...",
   "user_level_at_time": "...",
   "tools_used": [],
@@ -463,7 +670,8 @@ description: >-
 }
 ```
 
-`accuracy_ratio = actual_total / estimated_normal`（使用正常档位作为基准）
+`accuracy_ratio = actual_total / estimated_normal`（使用正常档位作为基准，包含 Layer 1 + Layer 2）
+`accuracy_layer1_only = actual_cache_miss_plus_output / estimated_layer1_normal`（仅执行层，用于调试公式精度）
 
 ### 8.4 校准系数更新
 

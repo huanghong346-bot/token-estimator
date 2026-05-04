@@ -1,0 +1,62 @@
+{
+  "project_name": "personal-site",
+  "project_type": "web_app_frontend",
+  "model": "deepseek-v4-pro",
+  "user_level": "L3",
+  "estimate": {
+    "optimistic": 26000,
+    "normal": 52000,
+    "pessimistic": 101000,
+    "note": "V2 formula — execution-only, did not include context retransmission (cache hit). Estimated only cache miss + output."
+  },
+  "actual_tokens": {
+    "input_cached": 11073152,
+    "input_miss": 218293,
+    "output": 37458,
+    "total": 11328903
+  },
+  "actual_api_calls": {
+    "count": 93,
+    "source": "deepseek_dashboard_manual",
+    "note": "用户手动从 platform.deepseek.com dashboard 读取"
+  },
+  "actual_cost_cny": 1.16,
+  "accuracy": {
+    "ratio_vs_normal": 217.86,
+    "assessment": "Catastrophic underestimate. Formula lacked context retransmission layer.",
+    "root_cause": "每次 API 调用重传完整上下文（系统提示+CLAUDE.md+工具定义+对话历史）产生大量缓存命中 tokens，占总消耗的 97.7%。旧公式仅估算了执行层（cache miss + output = 2.3%）的部分。",
+    "fix_applied": "V4 formula adds Layer 2 (context retransmission) and 3-tier cost calculation. Panel now shows cache hit / cache miss / output separately."
+  },
+  "key_metrics": {
+    "cache_hit_ratio": 0.977,
+    "execution_only_tokens": 255751,
+    "execution_vs_estimate_ratio": 4.92,
+    "note": "If only counting execution tokens (miss+output=256K), the estimate of 52K was off by ~5x. The 217x gap is entirely due to missing the cache hit layer."
+  },
+  "per_call_analysis": {
+    "avg_context_per_call": 119065,
+    "calculation": "11,073,152 cache_hit / 93 calls = 119,065 tokens per call",
+    "v5_assumption": 48000,
+    "actual_vs_assumed": 2.48,
+    "insight": "Average context per API call is 119K, 2.5x higher than V5 assumed 48K. CLAUDE.md (115 lines) + system prompt + tool definitions + conversation history accumulates to much larger context than estimated. This is the primary remaining source of Layer 2 underestimation."
+  },
+  "v4_backtest": {
+    "layer1_accuracy": "95% (270K estimated vs 256K actual execution tokens)",
+    "layer1_cache_miss": "162K estimated vs 218K actual (1.35x under)",
+    "layer1_output": "108K estimated vs 37K actual (2.9x over — actual had less generation than typical)",
+    "layer2_accuracy": "5.2x underestimate (2.19M vs 11.33M)",
+    "layer2_root_cause": "API call count estimated 40 (conversation mode) but actual was 93 calls in agent mode (confirmed via dashboard). With actual 93 calls and 119K avg context per call: 93 × 119K = 11.07M cache hit. V5 agent multiplier 3.5x on base 40 → 140 calls is an overcorrection, the real gap is per-call context size (119K actual vs 48K assumed = 2.5x).",
+    "small_project_issue": "9.4x overestimate for skill_plugin V1 (396K vs 42K). Call count estimated 15 (conversation mode) but actual was likely 3-5 calls even in agent mode for such a small spec-driven project. The base [5,20] call range combined with agent multiplier 3.5x gives 17-70 calls, still too high.",
+    "key_insight": "Both call count AND per-call context size need adjustment. For large projects, conversation history accumulation drives per-call context 2-3x above initial assumptions."
+  },
+  "v5_fix": {
+    "changes": [
+      "prompt_completeness now affects Layer 2 call count (separate coefficient table: 1.0x/0.75x/0.5x/0.3x)",
+      "model_intelligence now affects Layer 2 call count (separate coefficient table: 0.85x/0.90x/1.0x/1.15x/1.30x)",
+      "Added agent_mode multiplier: conversation(1.0x) / semi_auto(2.0x) / agent(3.5x) / agent_harness(4.5x)",
+      "Panel now shows agent mode and estimated API call count per tier",
+      "base_tokens.json: renamed api_call_estimates → api_call_base_estimates with clarified scope",
+      "Environment detection (step 2.6): auto-detect Claude Code → agent mode 3.5x"
+    ]
+  }
+}
