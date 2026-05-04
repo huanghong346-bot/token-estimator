@@ -81,19 +81,19 @@ This is the single biggest lever. A complete spec from a thinking partner (Claud
 ### Claude Code
 
 ```bash
-git clone https://github.com/huanghong346-bot/token-estimator.git ~/.claude/skills/estimate
+git clone https://github.com/rickrocks346/token-estimator.git ~/.claude/skills/estimate
 ```
 
 ### Cursor
 
 ```bash
-git clone https://github.com/huanghong346-bot/token-estimator.git ~/.cursor/skills/estimate
+git clone https://github.com/rickrocks346/token-estimator.git ~/.cursor/skills/estimate
 ```
 
 ### Other tools that support SKILL.md
 
 ```bash
-git clone https://github.com/huanghong346-bot/token-estimator.git ./estimate
+git clone https://github.com/rickrocks346/token-estimator.git ./estimate
 ```
 
 Then point your tool to the `SKILL.md` file. The install directory must be named `estimate` for the `/estimate` slash command to work.
