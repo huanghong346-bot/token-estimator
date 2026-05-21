@@ -366,9 +366,13 @@ CLAUDE.md 大小参考：
 
 三层估算模型：执行层 + 上下文重传层 → 完整费用。
 
-### 5.1 Layer 1: 执行层 token（cache miss + output）
+**估算目标**：预估的主目标为**计费token = 输入(未命中) + 输出**（即 Layer 1 执行层）。
+缓存命中（Layer 2 上下文重传层）价格极低（如 deepseek-v4-pro ¥0.025/1M，仅为未命中的 1/120），
+且取决于系统上下文大小（用户不可控），因此作为参考数据而非 accuracy 计算依据。
 
-这部分估算的是模型真正"读新内容"和"生成内容"的量。
+### 5.1 Layer 1: 执行层 token（cache miss + output）← 计费token
+
+这部分是模型真正"读新内容"和"生成内容"的量，也是**主要计费项**。
 
 ```
 基础量 = project_type_range × modification_factor + Σ(feature_addons_range)
@@ -401,10 +405,10 @@ CLAUDE.md 大小参考：
 执行层 output = 执行层token × output比例
 ```
 
-### 5.2 Layer 2: 上下文重传层 token（cache hit）
+### 5.2 Layer 2: 上下文重传层 token（cache hit）← 参考数据
 
 每次 API 调用都会重传：系统提示词 + CLAUDE.md + 工具定义 + 对话历史。
-这些是缓存命中（单价很低），但累积量巨大，必须纳入估算。
+这些是缓存命中（单价很低，如 ¥0.025/1M），累积量大但费用占比小，**不纳入 accuracy_ratio 计算**。
 
 ```
 预估API调用次数 = 基础调用次数 × 用户经验调用系数 × 提示词完整度调用系数
@@ -475,12 +479,14 @@ CLAUDE.md 大小参考：
 输出费用 = 执行层 output × output_price_per_1M / 1,000,000
 
 总费用 = 缓存命中费用 + 缓存未命中费用 + 输出费用
+计费token = 执行层 input + 执行层 output  (不包含缓存命中)
 总token = 执行层token + 上下文重传token
 ```
 
 - 同时显示人民币和美元（汇率 7.25）
 - 如果当前模型有优惠折扣，同时显示优惠价和原价
 - 如果模型没有单独的 cached input 价格（pricing.json 中无 `input_per_1M_cached` 字段），使用正常 input 价格的 10%（Anthropic/OpenAI 典型缓存折扣）
+- **费用跟踪主目标为计费token（Layer 1）**；缓存命中费用极低（通常不到总费用的 5%），单独列出供参考
 
 ---
 
@@ -531,6 +537,7 @@ CLAUDE.md 大小参考：
 ║   总费用($):    $[值]          $[值]          $[值]          ║
 ║                                                              ║
 ║  以上为 [当前模型名] 预估，费用基于 [价格描述]                   ║
+║  📌 accuracy 基于计费token（执行层），不含缓存命中                 ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  📈 进度追踪                                                 ║
@@ -662,10 +669,10 @@ CLAUDE.md 大小参考：
     "input_tokens": 0,
     "input_cached": 0,
     "output_tokens": 0,
+    "billable_total": 0,
     "total": 0
   },
   "accuracy_ratio": 0,
-  "accuracy_layer1_only": 0,
   "model": "...",
   "user_level_at_time": "...",
   "tools_used": [],
@@ -677,12 +684,28 @@ CLAUDE.md 大小参考：
 }
 ```
 
-`accuracy_ratio = actual_total / estimated_normal`（使用正常档位作为基准，包含 Layer 1 + Layer 2）
-`accuracy_layer1_only = actual_cache_miss_plus_output / estimated_layer1_normal`（仅执行层，用于调试公式精度）
+**accuracy_ratio 计算公式（仅计费token，排除缓存命中）**：
+
+```
+accuracy_ratio = (input_tokens + output_tokens) / estimated_normal
+```
+
+- `input_tokens` = 执行层输入未命中缓存（cache miss）
+- `output_tokens` = 执行层输出 token
+- `input_cached` = 缓存命中 token（**保留原始数据但不纳入 accuracy 计算**）
+- `billable_total` = input_tokens + output_tokens（计费token）
+- `total` = billable_total + input_cached（全部 token，供参考）
+
+**为什么排除缓存命中**：
+- 缓存命中价格极低（如 deepseek-v4-pro ¥0.025/1M vs 未命中 ¥3.00/1M，相差120倍）
+- 缓存命中量取决于系统上下文大小（用户不可控）
+- 纳入缓存命中会导致 accuracy_ratio 虚高（如 personal-site 项目从 320.76x → 7.25x），失去预估参考价值
+- 缓存命中数据保留在 `input_cached` 字段，用于分析上下文使用模式
 
 ### 8.4 校准系数更新
 
-用最近 5 个项目（或全部，如果少于 5 个）的 `accuracy_ratio` 计算加权平均：
+用最近 5 个项目（或全部，如果少于 5 个）的 `accuracy_ratio`（仅计费token，排除缓存命中）
+计算加权平均：
 
 ```
 新校准系数 = Σ(accuracy_ratio_i × weight_i) / Σ(weight_i)
@@ -694,7 +717,7 @@ CLAUDE.md 大小参考：
 - 历史项目少于 3 个时，校准系数保持 **1.0**
 - 校准系数范围限制在 **[0.5, 2.0]** 之间
 
-更新 `history.json` 中的 `calibration` 字段。
+更新 `history.json` 中的 `calibration` 字段，并记录 `billable_only: true` 标记。
 
 ### 8.5 项目总结输出
 
@@ -712,6 +735,7 @@ CLAUDE.md 大小参考：
 ║  │ 费用     │   ¥x.xx    │   ¥x.xx    │   ±xx%   │          ║
 ║  └──────────┴────────────┴────────────┴──────────┘          ║
 ║                                                              ║
+║  📌 Token为计费token（输入未命中 + 输出），不含缓存命中         ║
 ║  📐 校准系数已更新: [old] → [new] （基于 [n] 个项目）         ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
